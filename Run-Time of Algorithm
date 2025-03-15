@@ -1,0 +1,279 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <random>
+#include <chrono>
+#include <iomanip>
+
+class SearchSortOperations {
+private:
+    std::vector<int> numbers;
+    int size;
+
+    // Binary Search Implementation
+    int binarySearch(const std::vector<int>& arr, int target) {
+        int left = 0;
+        int right = arr.size() - 1;
+        
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            
+            if (arr[mid] == target)
+                return mid;
+            
+            if (arr[mid] < target)
+                left = mid + 1;
+            else
+                right = mid - 1;
+        }
+        
+        return -1;
+    }
+    
+    // Interpolation Search Implementation
+    int interpolationSearch(const std::vector<int>& arr, int target) {
+        int low = 0;
+        int high = arr.size() - 1;
+        
+        while (low <= high && target >= arr[low] && target <= arr[high]) {
+            if (low == high) {
+                if (arr[low] == target)
+                    return low;
+                return -1;
+            }
+            
+            // Formula for interpolation point:
+            // pos = low + ((target - arr[low]) * (high - low)) / (arr[high] - arr[low])
+            int pos = low + ((double)(target - arr[low]) * (high - low)) / (arr[high] - arr[low]);
+            
+            if (arr[pos] == target)
+                return pos;
+            
+            if (arr[pos] < target)
+                low = pos + 1;
+            else
+                high = pos - 1;
+        }
+        
+        return -1;
+    }
+    
+    // Selection Sort Implementation
+    void selectionSort(std::vector<int>& arr) {
+        int n = arr.size();
+        
+        for (int i = 0; i < n - 1; i++) {
+            int min_idx = i;
+            
+            for (int j = i + 1; j < n; j++) {
+                if (arr[j] < arr[min_idx])
+                    min_idx = j;
+            }
+            
+            if (min_idx != i)
+                std::swap(arr[i], arr[min_idx]);
+        }
+    }
+    
+    // Merge Sort Implementation
+    void merge(std::vector<int>& arr, int left, int mid, int right) {
+        int n1 = mid - left + 1;
+        int n2 = right - mid;
+        
+        std::vector<int> L(n1), R(n2);
+        
+        for (int i = 0; i < n1; i++)
+            L[i] = arr[left + i];
+        
+        for (int j = 0; j < n2; j++)
+            R[j] = arr[mid + 1 + j];
+        
+        int i = 0, j = 0, k = left;
+        
+        while (i < n1 && j < n2) {
+            if (L[i] <= R[j]) {
+                arr[k] = L[i];
+                i++;
+            } else {
+                arr[k] = R[j];
+                j++;
+            }
+            k++;
+        }
+        
+        while (i < n1) {
+            arr[k] = L[i];
+            i++;
+            k++;
+        }
+        
+        while (j < n2) {
+            arr[k] = R[j];
+            j++;
+            k++;
+        }
+    }
+    
+    void mergeSortHelper(std::vector<int>& arr, int left, int right) {
+        if (left < right) {
+            int mid = left + (right - left) / 2;
+            
+            mergeSortHelper(arr, left, mid);
+            mergeSortHelper(arr, mid + 1, right);
+            
+            merge(arr, left, mid, right);
+        }
+    }
+    
+    void mergeSort(std::vector<int>& arr) {
+        mergeSortHelper(arr, 0, arr.size() - 1);
+    }
+    
+    // Utility function to generate random numbers
+    void generateRandomNumbers() {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dist(1, 1000);
+        
+        numbers.resize(size);
+        for (int i = 0; i < size; i++) {
+            numbers[i] = dist(gen);
+        }
+    }
+    
+    // Utility function to print the array (helpful for debugging)
+    void printArray(const std::vector<int>& arr, bool full = false) {
+        int printLimit = full ? arr.size() : std::min(10, static_cast<int>(arr.size()));
+        
+        for (int i = 0; i < printLimit; i++) {
+            std::cout << arr[i] << " ";
+        }
+        
+        if (!full && arr.size() > 10) {
+            std::cout << "... (" << arr.size() - 10 << " more elements)";
+        }
+        
+        std::cout << std::endl;
+    }
+
+public:
+    SearchSortOperations(int n) : size(n) {
+        generateRandomNumbers();
+    }
+    
+    void performSearchOperations() {
+        // Work with a sorted copy for searching
+        std::vector<int> sortedNumbers = numbers;
+        std::sort(sortedNumbers.begin(), sortedNumbers.end());
+        
+        std::cout << "\n---- Search Operations ----" << std::endl;
+        std::cout << "Sorted array (first 10): ";
+        printArray(sortedNumbers);
+        
+        int target;
+        std::cout << "Enter the element to search for: ";
+        std::cin >> target;
+        
+        // Binary Search
+        auto start = std::chrono::high_resolution_clock::now();
+        int binaryResult = binarySearch(sortedNumbers, target);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::micro> binaryTime = end - start;
+        
+        std::cout << "\na) Binary Search Result: ";
+        if (binaryResult != -1) {
+            std::cout << "Element found at index " << binaryResult << std::endl;
+        } else {
+            std::cout << "Element not found" << std::endl;
+        }
+        std::cout << "   Execution time: " << std::fixed << std::setprecision(2) << binaryTime.count() << " microseconds" << std::endl;
+        
+        // Interpolation Search
+        start = std::chrono::high_resolution_clock::now();
+        int interpolationResult = interpolationSearch(sortedNumbers, target);
+        end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::micro> interpolationTime = end - start;
+        
+        std::cout << "\nb) Interpolation Search Result: ";
+        if (interpolationResult != -1) {
+            std::cout << "Element found at index " << interpolationResult << std::endl;
+        } else {
+            std::cout << "Element not found" << std::endl;
+        }
+        std::cout << "   Execution time: " << std::fixed << std::setprecision(2) << interpolationTime.count() << " microseconds" << std::endl;
+    }
+    
+    void performSortOperations() {
+        std::cout << "\n---- Sort Operations ----" << std::endl;
+        std::cout << "Original array (first 10): ";
+        printArray(numbers);
+        
+        // Selection Sort
+        std::vector<int> selectionArray = numbers;
+        auto start = std::chrono::high_resolution_clock::now();
+        selectionSort(selectionArray);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> selectionTime = end - start;
+        
+        std::cout << "\na) Selection Sort Result (first 10): ";
+        printArray(selectionArray);
+        std::cout << "   Execution time: " << std::fixed << std::setprecision(2) << selectionTime.count() << " milliseconds" << std::endl;
+        
+        // Merge Sort
+        std::vector<int> mergeArray = numbers;
+        start = std::chrono::high_resolution_clock::now();
+        mergeSort(mergeArray);
+        end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> mergeTime = end - start;
+        
+        std::cout << "\nb) Merge Sort Result (first 10): ";
+        printArray(mergeArray);
+        std::cout << "   Execution time: " << std::fixed << std::setprecision(2) << mergeTime.count() << " milliseconds" << std::endl;
+        
+        // Verify if both sorts produce the same result
+        bool isSame = (selectionArray == mergeArray);
+        std::cout << "\nBoth sort algorithms produced " << (isSame ? "identical" : "different") << " results." << std::endl;
+    }
+};
+
+int main() {
+    int n;
+    std::cout << "Enter the number of random integers to generate: ";
+    std::cin >> n;
+    
+    if (n <= 0) {
+        std::cout << "Please enter a positive number." << std::endl;
+        return 1;
+    }
+    
+    SearchSortOperations operations(n);
+    
+    int choice;
+    do {
+        std::cout << "\n===== MENU =====" << std::endl;
+        std::cout << "1. Perform Search Operations" << std::endl;
+        std::cout << "2. Perform Sort Operations" << std::endl;
+        std::cout << "3. Exit" << std::endl;
+        std::cout << "Enter your choice: ";
+        std::cin >> choice;
+        
+        switch (choice) {
+            case 1:
+                operations.performSearchOperations();
+                break;
+            case 2:
+                operations.performSortOperations();
+                break;
+            case 3:
+                std::cout << "Exiting program. Goodbye!" << std::endl;
+                break;
+            default:
+                std::cout << "Invalid choice. Please try again." << std::endl;
+        }
+    } while (choice != 3);
+    
+    return 0;
+}
+
+
+
