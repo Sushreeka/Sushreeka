@@ -1,0 +1,75 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
+
+// Function to generate N random numbers
+void generateRandomNumbers(vector<int>& arr, int N) {
+    srand(time(0));
+    for (int i = 0; i < N; i++) {
+        arr.push_back(rand() % 100); // Random numbers between 0 and 99
+    }
+}
+
+// Function to perform selection sort
+void selectionSort(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n - 1; i++) {
+        int minIndex = i;
+        for (int j = i + 1; j < n; j++) {
+            if (arr[j] < arr[minIndex]) {
+                minIndex = j;
+            }
+        }
+        swap(arr[i], arr[minIndex]);
+    }
+}
+
+// Function to search for an element using linear search
+bool linearSearch(const vector<int>& arr, int target) {
+    for (int num : arr) {
+        if (num == target) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Function to display the array
+void displayArray(const vector<int>& arr) {
+    for (int num : arr) {
+        cout << num << " ";
+    }
+    cout << endl;
+}
+
+int main() {
+    int N, searchElement;
+    cout << "Enter the number of random integers to generate: ";
+    cin >> N;
+
+    vector<int> arr;
+    generateRandomNumbers(arr, N);
+
+    cout << "\nGenerated random numbers: ";
+    displayArray(arr);
+
+    // Sorting the array
+    selectionSort(arr);
+    cout << "\nSorted numbers in ascending order: ";
+    displayArray(arr);
+
+    // Searching for an element
+    cout << "\nEnter an element to search: ";
+    cin >> searchElement;
+    if (linearSearch(arr, searchElement)) {
+        cout << searchElement << " found in the array." << endl;
+    } else {
+        cout << searchElement << " not found in the array." << endl;
+    }
+
+    return 0;
+}
