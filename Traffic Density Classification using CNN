@@ -1,0 +1,249 @@
+# Importing necessary files
+import tensorflow as tf
+import os
+import random
+import shutil
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import load_model
+import matplotlib.pyplot as plt
+import numpy as np
+# Name of the classes to classify
+class_name=os.listdir(r'D:\College\2nd Year 1st sem AI\CV and NLP\Practical\Video\New folder')
+class_name
+['Congested Traffic', 'Heavy Traffic', 'Light Traffic', 'Moderate Traffic']
+# Specifying path for training and validation directory
+train_dir=r'D:\College\2nd Year 1st sem AI\CV and NLP\Practical\Video\New folder (3)\Train'
+val_dir=r'D:\College\2nd Year 1st sem AI\CV and NLP\Practical\Video\New folder (3)\Validation'
+test_dir=r"D:\College\2nd Year 1st sem AI\CV and NLP\Practical\Video\New folder (3)\Test"
+
+# Creating different folders according to classes for Training
+for i in range(len(class_name)):
+    path_train=os.path.join(train_dir,class_name[i]+'_train')
+    os.makedirs(path_train,exist_ok=True)
+    
+# Creating different folders according to classes for Validation
+for i in range(len(class_name)):
+    path_val=os.path.join(val_dir,class_name[i]+'_val')
+    os.makedirs(path_val,exist_ok=True)
+    
+# Creating different folders according to classes for Testing
+for i in range(len(class_name)):
+    path_test=os.path.join(test_dir,class_name[i]+'_test')
+    os.makedirs(path_test,exist_ok=True)
+# Split for testing, training and validation
+def data_split(class_dir,train_ratio,val_ratio,test_ratio):
+    
+    # Setting up seed for reproducability
+    random.seed(10)
+    
+    # listing and shuffling image files
+    files=os.listdir(class_dir)
+    random.shuffle(files)
+    
+    # Calculating splits
+    files_nums=len(files)
+    train_split=int(train_ratio*files_nums)
+    val_split=int(val_ratio*files_nums)
+    
+    # Splitting files according to ratio
+    train_files=files[:train_split]
+    val_files=files[train_split:train_split+val_split]
+    test_files=files[train_split+val_split:]
+    
+    # Shuffling files after split
+    random.shuffle(train_files)
+    random.shuffle(val_files)
+    random.shuffle(test_files)
+
+    # returning training,testing and validation files according to class directory
+    return train_files,val_files,test_files
+# Specifying train, validation and test ratio
+train_ratio=0.75
+val_ratio=0.15
+test_ratio=0.1
+
+# Creating a dictionary for split information
+info_split={}
+
+# Directory where images is located
+data_dir=r"D:\College\2nd Year 1st sem AI\CV and NLP\Practical\Video\New folder"
+for i in class_name:
+    train,validation,test=data_split(os.path.join(data_dir,i),train_ratio,val_ratio,test_ratio)
+
+    # Setting up split info
+    train_size,val_size,test_size=len(train),len(validation),len(test)
+    info_split[i]=[train_size,val_size,test_size]
+    
+    # Using shutil to copy files to their respective directories for train_dir
+    for file in train:
+        shutil.copy(os.path.join(data_dir,i,file),os.path.join(train_dir,i+'_train',file))
+
+    # Using shutil to copy files to their respective directories for val_dir
+    for file in validation:
+        shutil.copy(os.path.join(data_dir,i,file),os.path.join(val_dir,i+'_val',file))
+        
+    # Using shutil to copy files to their respective directories for test_dir
+    for file in test:
+        shutil.copy(os.path.join(data_dir,i,file),os.path.join(test_dir,i+'_test',file))
+info_split
+{'Congested Traffic': [1887, 377, 252],
+ 'Heavy Traffic': [1597, 319, 214],
+ 'Light Traffic': [1800, 360, 240],
+ 'Moderate Traffic': [1755, 351, 234]}
+# Categories
+categories = info_split.keys()
+
+# Extract counts
+train_counts = [items[0] for items in info_split.values()]
+val_counts = [items[1] for items in info_split.values()]
+test_counts = [items[2] for items in info_split.values()]  # Test set counts
+
+# Bar width
+bar_width = 0.25
+
+# Bar positions
+train_positions = range(len(categories))
+val_positions = [pos + bar_width for pos in train_positions]
+test_positions = [pos + 2 * bar_width for pos in train_positions]  # Add test bars
+
+fig, ax = plt.subplots(figsize=(10, 5))
+
+# Create the bar plot
+plt.bar(train_positions, train_counts, bar_width, label='Train', color='blue')
+plt.bar(val_positions, val_counts, bar_width, label='Validation', color='orange')
+plt.bar(test_positions, test_counts, bar_width, label='Test', color='green')
+
+# Set the x-axis labels and rotate them
+plt.xticks([pos + bar_width for pos in train_positions], categories, rotation=45)
+
+# Set labels and title
+plt.xlabel('Traffic Categories')
+plt.ylabel('Count of Images')
+plt.title('Dataset Distribution: Train, Validation, and Test Sets')
+
+# Display a legend
+plt.legend()
+
+# Annotate the bars with their values
+for i, v in enumerate(categories):
+    plt.text(train_positions[i] + bar_width / 2, train_counts[i] + 5, str(train_counts[i]),
+             ha='center', va='bottom')
+    plt.text(val_positions[i] + bar_width / 2, val_counts[i] + 5, str(val_counts[i]),
+             ha='center', va='bottom')
+    plt.text(test_positions[i] + bar_width / 2, test_counts[i] + 5, str(test_counts[i]),
+             ha='center', va='bottom')
+
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+# Show the plot
+plt.show()
+# Specifying the image width, height and batch size and number of classes
+img_width, img_height = 300,300
+batch_size = 32
+num_classes = 4
+# Data Augmentation using ImageDataGenerator to enhance generalization and prevent overfitting during training
+train_datagen = ImageDataGenerator(
+    rescale=1.0/255.0, # Normalization from [0,255] to [0,1]
+    rotation_range=20, # Randomly rotate images by up to 20 degrees
+    width_shift_range=0.2, # Randomly shift images horizontally by up to 20% of the width
+    height_shift_range=0.2, # Randomly shift images vertically by up to 20% of the height
+    shear_range=0.2, # Apply shear transformation (distortion in the shape of images)
+    zoom_range=0.2, # Randomly zoom images by up to 20%
+    horizontal_flip=True # Flip images horizontally to add variation (useful for non-directional objects)
+)
+# Rescaling validation images
+val_datagen = ImageDataGenerator(rescale=1.0/255.0)
+
+# Loading training data from directory
+train_generator = train_datagen.flow_from_directory(
+    train_dir, # Path to the training directory dataset
+    target_size=(img_width, img_height), # Path to the training directory dataset
+    batch_size=batch_size, # Number of image loaded per batch during training
+    class_mode='categorical' # Labels are one hot encoded since it is multiclass classification
+)
+
+# Loading validation data
+val_generator = val_datagen.flow_from_directory(
+    val_dir, # Path to the validation directory dataset
+    target_size=(img_width, img_height), # Path to the training directory dataset
+    batch_size=batch_size, # Number of image loaded per batch during validation
+    class_mode='categorical' # One hot encoding
+)
+# Creating the model
+model = Sequential([
+    Conv2D(32, (3,3), activation='relu', input_shape=(img_width, img_height, 3)),
+    MaxPooling2D(pool_size=(2,2)),# Convolutional layer with 32 filters (3x3) filter size and Maxpooling for downsampling
+
+    Conv2D(64, (3,3), activation='relu'),
+    MaxPooling2D(pool_size=(2,2)),# Convolutional layer with 64 filters (3x3) filter size and Maxpooling for downsampling
+
+    Conv2D(128, (3,3), activation='relu'),
+    MaxPooling2D(pool_size=(2,2)),# Convolutional layer with 128 filters (3x3) filter size and Maxpooling for downsampling
+
+    Flatten(),# Flattening to change into 1D array
+    Dense(128, activation='relu'), # Fully connected layer
+    Dropout(0.5),# Dropout for overfitting reduction
+    Dense(num_classes, activation='softmax')  # 4-class classification
+])
+#Compiling the model
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+# Fitting the data into the model
+history = model.fit(
+    train_generator,
+    epochs=10,
+    validation_data=val_generator
+)
+#Visualizing the Model Accuracy andd Model loss
+plt.figure(figsize=(12,5))
+plt.subplot(1,2,1)
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.legend()
+plt.title('Model Accuracy')
+
+plt.subplot(1,2,2)
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.legend()
+plt.title('Model Loss')
+plt.show()
+#Normalizing the test data
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+test_generator = test_datagen.flow_from_directory(
+    test_dir, # Path to test directory
+    target_size=(300,300),  # Change based on model input size
+    batch_size=32, # Number of images loaded per batch for testing
+    class_mode='categorical',  # Use 'categorical' for multi-class classification
+    shuffle=False  # No shuffling for test set
+)
+
+print("Class indices:", test_generator.class_indices) # Printing class indices
+from sklearn.metrics import confusion_matrix, classification_report
+
+y_pred_probs = model.predict(test_generator)# Getting models prediction 
+y_pred = np.argmax(y_pred_probs, axis=1)# Converting probabilities into class label
+y_true = test_generator.classes# Contains true labels from test set
+
+cm=confusion_matrix(y_true,y_pred)# Computing confusion matrix
+
+#Visualizing the confusion matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Define class labels
+class_labels = ['Congested Traffic', 'Heavy Traffic', 'Light Traffic', 'Moderate Traffic']
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_labels, yticklabels=class_labels)
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.title("Confusion Matrix")
+plt.xticks(rotation=45)  # Rotate x-axis labels for better visibility
+plt.yticks(rotation=0)   # Keep y-axis labels horizontal
+plt.show()
+
+print("Classification Report:\n", classification_report(y_true, y_pred, target_names=test_generator.class_indices.keys()))
+# Saving the model
+model.save('best.h5')
